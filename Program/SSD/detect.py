@@ -65,7 +65,7 @@ def detect(original_image, min_score, max_overlap, top_k, suppress=None):
     # Annotate
     annotated_image = original_image
     draw = ImageDraw.Draw(annotated_image)
-    font = ImageFont.truetype("./calibril.ttf", 15)
+    font = ImageFont.load_default()
 
     # Suppress specific classes, if needed
     for i in range(det_boxes.size(0)):
