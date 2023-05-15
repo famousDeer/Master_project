@@ -11,10 +11,10 @@ pp = PrettyPrinter()
 ROOT = Path("/home/famousdeer/Desktop/Praca magisterska/Program/data/VOCdevkit")
 data_folder = ROOT
 keep_difficult = True  # difficult ground truth objects must always be considered in mAP calculation, because these objects DO exist!
-batch_size = 4
-workers = 4
+batch_size = 32
+workers = os.cpu_count()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-checkpoint = 'checkpoint_ssd300.pth.tar'
+checkpoint = '/home/famousdeer/Desktop/Praca magisterska/Program/checkpoint_ssd300.pth.tar'
 
 # Load model checkpoint that is to be evaluated
 checkpoint = torch.load(checkpoint)

@@ -8,7 +8,7 @@ from datasets import PascalVOCDataset
 from util import *
 
 ROOT = Path("/home/famousdeer/Desktop/Praca magisterska/Program/data/VOCdevkit")
-BATCH_SIZE = 4
+BATCH_SIZE = 32
 
 
 # Data parameters
@@ -23,7 +23,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Learning parameters
 checkpoint = None  # path to model checkpoint, None if none
 iterations = 120000  # number of iterations to train
-workers = 4  # number of workers for loading data in the DataLoader
+workers = os.cpu_count()  # number of workers for loading data in the DataLoader
 print_freq = 200  # print training status every __ batches
 lr = 1e-3  # learning rate
 decay_lr_at = [80000, 100000]  # decay learning rate after these many iterations
