@@ -1,0 +1,5 @@
+Program/ViT/__pycache__/models.cpython-310.pyc
+# Ignore Data folder
+Program/data/
+# Ignore pycache
+__pycache__
