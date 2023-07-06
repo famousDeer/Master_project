@@ -86,7 +86,7 @@ class TinyVGG(nn.Module):
                x_prob = self.probblock(x)
                x_boxes = self.boxesblock(x)
                x_cls = self.clsblock(x)
-               gate = torch.where(x_prob > 0.5, torch.ones_like(x_prob), torch.zeros_like(x_prob))
+               gate = torch.where(x_prob > 0.8, torch.ones_like(x_prob), torch.zeros_like(x_prob))
                x_boxes = x_boxes * gate
                x_cls = x_cls * gate
                x = torch.cat([x_prob, x_boxes, x_cls], dim=1)
