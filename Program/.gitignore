@@ -1,2 +1,6 @@
 # Ignore Data folder
 data/
+# Ignore pycache in SSD
+SSD/__pycache__
+# Ignore pycache in ViT
+ViT/__pycache__
