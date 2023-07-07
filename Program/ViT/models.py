@@ -95,24 +95,69 @@ class MLPBlock(nn.Module):
         x = self.mlp(x)
         
         return x
+
+class TransformerEncodeBlock(nn.Module):
+    def __init__(self,
+                 embedding_dim: int=768,
+                 num_heads: int=12,
+                 mlp_size: int=3072,
+                 mlp_dropout: float=0.1,
+                 atten_dropout: float=0.0) -> None:
+        super(TransformerEncodeBlock, self).__init__()
+
+        self.embedding_dim = embedding_dim
+        self.num_heads = num_heads
+        self.mlp_size = mlp_size
+        self.mlp_dropout = mlp_dropout
+        self.atten_dropout = atten_dropout
+
+        self.msa_block = MultiheadSelfAttentionBlock(embedding_dim=self.embedding_dim,
+                                                     num_heads=self.num_heads,
+                                                     dropout=self.atten_dropout)
+        self.mlp_block = MLPBlock(embedding_dim=self.embedding_dim,
+                                  mlp_size=self.mlp_size,
+                                  dropout=self.mlp_dropout)
+        
+    def forward(self, x):
+        x = self.msa_block(x) + x
+        x = self.mlp_block(x) + x
+        return x
     
 class ViT(nn.Module):
     def __init__(self,
                  img_height: int,
                  img_width: int,
-                 batch_size: int,
+                 num_classes: int,
+                 in_channels: int=3,
                  patch_size: int=16,
-                 embedding_dim: int=768) -> None:
+                 num_transformer_layers: int=12,
+                 embedding_dim: int=768,
+                 mlp_size: int=3072,
+                 num_heads: int=12,
+                 atten_dropout: float=0.0,
+                 mlp_dropout: float=0.1,
+                 embedding_dropout: float=0.1) -> None:
         super(ViT,self).__init__()
         
-        self.batch_size = batch_size
+        # Initialize variable
         self.img_height = img_height
         self.img_width = img_width
+        self.num_classes = num_classes
+        self.in_channels = in_channels
         self.patch_size = patch_size
-        self.number_patches = (self.img_height * self.img_width) / self.patch_size ** 2
+        self.num_transformer_layers = num_transformer_layers
         self.embedding_dim = embedding_dim
+        self.mlp_size = mlp_size
+        self.num_heads = num_heads
+        self.atten_dropout = atten_dropout
+        self.mlp_dropout = mlp_dropout
+        self.embedding_dropout_p = embedding_dropout        
+        self.number_patches = int((self.img_height * self.img_width) / self.patch_size ** 2)
         
-        self.class_embedding = nn.Parameter(data=torch.randn(self.batch_size, 
+        # Check if image is divisible by the patch size
+        assert self.img_height % patch_size == 0, f"Input image size must be divisible by patch size, image shape: {self.img_height}, patch size: {self.patch_size}"
+               
+        self.class_embedding = nn.Parameter(data=torch.randn(1, 
                                                              1, 
                                                              self.embedding_dim),
                                             requires_grad=True)
@@ -120,7 +165,29 @@ class ViT(nn.Module):
                                                                 self.number_patches+1,
                                                                 self.embedding_dim),
                                                requires_grad=True)
+        self.embedding_dropout = nn.Dropout(p=self.embedding_dropout_p)
+        self.patch_embedding = PatchEmbedding(in_channels=self.in_channels,
+                                              patch_size=self.patch_size,
+                                              embedding_dim=self.embedding_dim)
+        self.transformer_encoder = nn.Sequential(*[TransformerEncodeBlock(embedding_dim=self.embedding_dim,
+                                                                          num_heads=self.num_heads,
+                                                                          mlp_size=self.mlp_size,
+                                                                          mlp_dropout=self.mlp_dropout,
+                                                                          atten_dropout=self.atten_dropout) for _ in range(self.num_transformer_layers)])
+        self.classifier = nn.Sequential(
+            nn.LayerNorm(normalized_shape=self.embedding_dim),
+            nn.Linear(in_features=self.embedding_dim,
+                      out_features=self.num_classes))
         
     def forward(self, x):
-        
+        batch_size = x.shape[0]
+
+        class_token = self.class_embedding.expand(batch_size, -1, -1)
+
+        x = self.patch_embedding(x)
+        x = torch.cat((class_token, x), dim=1)
+        x = self.position_embedding + x
+        x = self.embedding_dropout(x)
+        x = self.transformer_encoder(x)
+        x = self.classifier(x[:, 0])
         return x
